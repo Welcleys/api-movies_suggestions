@@ -8,7 +8,7 @@ class Endpoint
 
     public function __construct($classe,$execucao)
     {
-        $this->classe = "controller\\" . $classe;
+        $this->classe = "controller\\" . $classe . "Controller";
         $this->execucao = $execucao;
     }
 }

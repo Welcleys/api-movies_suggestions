@@ -1,62 +1,57 @@
 <?php
 namespace dao\mysql;
 
-use dao\ICategoriaDAO;
-use generic\MysqlSingleton;
-use service\Categoria;
-use PDO;
+use generic\MysqlSingleton; // Usa a nova classe de conexão
 
-class CategoriaDAO implements ICategoriaDAO {
-    
-    private MysqlSingleton $banco;
+class CategoriaDAO {
+    private $conn;
+    private $table_name = "categorias";
 
-    public function __construct(MysqlSingleton $conexao_banco) {
-        $this->banco = $conexao_banco;
-    }
-    
-    public function inserir(Categoria $categoria): int {
-        $sql = "INSERT INTO categorias (nome) VALUES (?)";
-        $params = [$categoria->getNome()];
-        return $this->banco->executeNonQuery($sql, $params);
+    // Recebe a conexão via injeção de dependência (do MysqlFactory)
+    public function __construct(MysqlSingleton $conn) {
+        $this->conn = $conn;
     }
 
-    public function atualizar(Categoria $categoria): int {
-        $sql = "UPDATE categorias SET nome = ? WHERE id = ?";
-        $params = [$categoria->getNome(), $categoria->getId()];
-        return $this->banco->executeNonQuery($sql, $params);
-    }
-
-    public function deletar(int $id): int {
-        $sql = "DELETE FROM categorias WHERE id = ?";
-        return $this->banco->executeNonQuery($sql, [$id]);
-    }
-    
-    public function buscarTodos(): array {
-        $sql = "SELECT id, nome FROM categorias";
-        $stmt = $this->banco->prepared($sql);
-        $resultados = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // CREATE (Agora usando prepared statements do MysqlSingleton)
+    public function create(string $nome): bool {
+        $query = "INSERT INTO " . $this->table_name . " (nome) VALUES (?)";
+        $params = [$nome];
         
-        $arrayDeCategorias = [];
-        foreach ($resultados as $row) {
-            $categoria = new Categoria();
-            $categoria->setId($row["id"]);
-            $categoria->setNome($row["nome"]);
-            $arrayDeCategorias[] = $categoria;
-        }
-        return $arrayDeCategorias;
+        // Retorna true se a execução foi bem-sucedida (rowCount > 0)
+        return $this->conn->executeNonQuery($query, $params) > 0;
     }
 
-    public function buscarPorId(int $id): ?Categoria {
-        $sql = "SELECT id, nome FROM categorias WHERE id = ?";
-        $stmt = $this->banco->prepared($sql, [$id]);
-        $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
+    // READ ALL
+    public function findAll(): array {
+        $query = "SELECT id, nome FROM " . $this->table_name . " ORDER BY nome ASC";
+        // Usa o método prepared para evitar injeção, mesmo sem parâmetros de entrada
+        $stmt = $this->conn->prepared($query); 
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+    
+    // READ ONE
+    public function findById(int $id): ?array {
+        $query = "SELECT id, nome FROM " . $this->table_name . " WHERE id = ?";
+        $params = [$id];
+        $stmt = $this->conn->prepared($query, $params);
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+        
+        return $result ?: null;
+    }
+    
+    // UPDATE
+    public function update(int $id, string $nome): bool {
+        $query = "UPDATE " . $this->table_name . " SET nome = ? WHERE id = ?";
+        $params = [$nome, $id];
+        
+        return $this->conn->executeNonQuery($query, $params) > 0;
+    }
 
-        if ($resultado) {
-            $categoria = new Categoria();
-            $categoria->setId($resultado["id"]);
-            $categoria->setNome($resultado["nome"]);
-            return $categoria;
-        }
-        return null;
+    // DELETE
+    public function delete(int $id): bool {
+        $query = "DELETE FROM " . $this->table_name . " WHERE id = ?";
+        $params = [$id];
+        
+        return $this->conn->executeNonQuery($query, $params) > 0;
     }
 }

@@ -20,7 +20,7 @@ class  MysqlSingleton
     private function __construct()
     {
 
-        $this->dns = "mysql:host=localhost;dbname=api_sugestao_filmes;charset=utf8";
+        $this->dns = "mysql:host=localhost;dbname=api_movies;charset=utf8";
         $this->username = "root";
         $this->password = "";
         $this->options = [

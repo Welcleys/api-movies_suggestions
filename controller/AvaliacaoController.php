@@ -1,34 +1,32 @@
 <?php
 namespace controller;
 
-use service\ClienteService;
-use template\ClienteTemp;
-use template\ITemplate;
+use service\AvaliacaoService;
 
-class Cliente
-{
-    public function __construct(){
+class AvaliacaoController {
+    private $service;
 
+    public function __construct() {
+        $this->service = new AvaliacaoService();
     }
 
-
-    public function listar(){
-        $service = new ClienteService();
-        $resultado = $service->listarCliente();
-        return $resultado;
+    // Mapeado para GET /avaliacao
+    public function listar() {
+        return $this->service->getAll();
     }
-
-
-    public function inserir($nome, $endereco){
-        $service = new ClienteService();
-        $resultado = $service->inserir($nome, $endereco);
-        return $resultado;
+    
+    // Mapeado para POST /avaliacao
+    public function inserir(array $data) {
+        return $this->service->create($data);
     }
-
-    public function teste($nome, $telefone){
-        return "$nome, $telefone";
+    
+    // Mapeado para PUT/PATCH /avaliacao
+    public function atualizar(array $data) {
+        return $this->service->atualizar($data);
     }
-
-    public function teste2() {
+    
+    // Mapeado para DELETE /avaliacao
+    public function excluir(array $data) {
+        return $this->service->excluir($data);
     }
 }

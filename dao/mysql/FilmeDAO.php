@@ -1,72 +1,40 @@
 <?php
-
 namespace dao\mysql;
 
-use dao\IFilmeDAO;
 use generic\MysqlSingleton;
-use service\Filme;
-use PDO;
 
-class FilmeDAO implements IFilmeDAO
-{
+class FilmeDAO {
+    private $conn;
+    private $table_name = "filmes";
 
-    private MysqlSingleton $banco;
-
-    public function __construct(MysqlSingleton $conexao_banco)
-    {
-        $this->banco = $conexao_banco;
+    public function __construct(MysqlSingleton $conn) {
+        $this->conn = $conn;
     }
 
-    public function salvar(Filme $filme): int
-    {
-        $sql = "INSERT INTO filmes (titulo, ano_lancamento) VALUES (?, ?)";
-        $params = [$filme->getTitulo(), $filme->getAnoLancamento()];
-        return $this->banco->executeNonQuery($sql, $params);
+    public function create(string $titulo, int $ano_lancamento): bool {
+        $query = "INSERT INTO " . $this->table_name . " (titulo, ano_lancamento) VALUES (?, ?)";
+        return $this->conn->executeNonQuery($query, [$titulo, $ano_lancamento]) > 0;
     }
 
-    public function atualizar(Filme $filme): int
-    {
-        $sql = "UPDATE filmes SET titulo = ?, ano_lancamento = ? WHERE id = ?";
-        $params = [$filme->getTitulo(), $filme->getAnoLancamento(), $filme->getId()];
-        return $this->banco->executeNonQuery($sql, $params);
+    public function findAll(): array {
+        $query = "SELECT id, titulo, ano_lancamento FROM " . $this->table_name . " ORDER BY titulo ASC";
+        $stmt = $this->conn->prepared($query);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
-    public function buscarTodos(): array
-    {
-        $sql = "SELECT id, titulo, ano_lancamento FROM filmes";
-        $stmt = $this->banco->prepared($sql);
-        $resultados = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        $arrayDeFilmes = [];
-        foreach ($resultados as $row) {
-            $filme = new Filme();
-            $filme->setId($row["id"]);
-            $filme->setTitulo($row["titulo"]);
-            $filme->setAnoLancamento($row["ano_lancamento"]);
-            $arrayDeFilmes[] = $filme;
-        }
-        return $arrayDeFilmes;
+    public function findById(int $id): ?array {
+        $query = "SELECT id, titulo, ano_lancamento FROM " . $this->table_name . " WHERE id = ?";
+        $stmt = $this->conn->prepared($query, [$id]);
+        return $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
+    }
+    
+    public function update(int $id, string $titulo, int $ano_lancamento): bool {
+        $query = "UPDATE " . $this->table_name . " SET titulo = ?, ano_lancamento = ? WHERE id = ?";
+        return $this->conn->executeNonQuery($query, [$titulo, $ano_lancamento, $id]) > 0;
     }
 
-    public function buscarPorId(int $id): ?Filme
-    {
-        $sql = "SELECT id, titulo, ano_lancamento FROM filmes WHERE id = ?";
-        $stmt = $this->banco->prepared($sql, [$id]);
-        $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if ($resultado) {
-            $filme = new Filme();
-            $filme->setId($resultado["id"]);
-            $filme->setTitulo($resultado["titulo"]);
-            $filme->setAnoLancamento($resultado["ano_lancamento"]);
-            return $filme;
-        }
-        return null;
-    }
-
-    public function deletar(int $id): int
-    {
-        $sql = "DELETE FROM filmes WHERE id = ?";
-        return $this->banco->executeNonQuery($sql, [$id]);
+    public function delete(int $id): bool {
+        $query = "DELETE FROM " . $this->table_name . " WHERE id = ?";
+        return $this->conn->executeNonQuery($query, [$id]) > 0;
     }
 }
