@@ -76,16 +76,31 @@ class Acao{
         return [];
 
     }
+    
     private function getInput(){
         $input = file_get_contents("php://input");
+        $data = []; // Inicializa como array vazio
 
         if($input){
-            return json_decode($input,true);
+            $data = json_decode($input, true);
+            
+            // CRÍTICO: Se json_decode falhar, ele retorna NULL. 
+            // Garante que o retorno seja um array vazio se $data for NULL
+            if (!is_array($data)) { 
+                $data = [];
+            }
         }
-        return [];
+        
+        // Retorna o array decodificado ou um array vazio
+        return $data;
     }
     
     public function getParam(){
-        return array_merge($this->getPost(),$this->getGet(),$this->getInput());
+        // Usa array_merge com verificação para garantir que todos os argumentos são arrays
+        $post = $this->getPost() ?: [];
+        $get = $this->getGet() ?: [];
+        $input = $this->getInput() ?: [];
+        
+        return array_merge($post, $get, $input);
     }
 }
