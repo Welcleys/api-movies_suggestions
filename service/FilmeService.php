@@ -10,6 +10,7 @@ class FilmeService {
         $this->dao = MysqlFactory::createFilmeDAO();
     }
 
+    // Mapeado para GET /filme
     public function getAll(): array {
         return $this->dao->findAll();
     }
@@ -18,71 +19,91 @@ class FilmeService {
         $id = (int) ($data['id'] ?? 0);
         
         if ($id <= 0) {
-            return ['success' => false, 'message' => 'ID inválido para busca.'];
+            // ID inválido para busca: 400 Bad Request
+            return ['http_code' => 400, 'status' => 'error', 'message' => 'ID inválido para busca.'];
         }
         
-        return $this->dao->findById($id);
+        $resultado = $this->dao->findById($id);
+
+        if (!$resultado) {
+            // Filme não encontrado: 404 Not Found
+            return ['http_code' => 404, 'status' => 'error', 'message' => 'Filme não encontrado.'];
+        }
+        
+        // Retorna o resultado encontrado (o status 200 será o padrão)
+        return $resultado;
     }
 
+    // Mapeado para POST /filme
     public function create(array $data): array {
         $titulo = trim($data['titulo'] ?? '');
         $ano_lancamento = (int) ($data['ano_lancamento'] ?? 0);
-        $tempo_duracao = trim($data['tempo_duracao'] ?? ''); // <-- Novo campo
+        $tempo_duracao = trim($data['tempo_duracao'] ?? '');
 
-        // Atualiza a validação
         if (empty($titulo) || $ano_lancamento <= 0 || empty($tempo_duracao)) { 
-            return ['success' => false, 'message' => 'Título, Ano de Lançamento e Tempo de Duração são obrigatórios e válidos.'];
+            // Validação de campos: 400 Bad Request
+            return ['http_code' => 400, 'status' => 'error', 'message' => 'Título, Ano de Lançamento e Tempo de Duração são obrigatórios e válidos.'];
         }
 
-        // Passa o novo campo para o DAO
         if ($this->dao->create($titulo, $ano_lancamento, $tempo_duracao)) { 
-            return ['success' => true, 'message' => 'Filme criado com sucesso.'];
+            // Sucesso na criação: 201 Created
+            return ['http_code' => 201, 'status' => 'success', 'message' => 'Filme criado com sucesso.'];
         }
-        return ['success' => false, 'message' => 'Erro interno ao criar filme.'];
+        // Falha interna: 500 Internal Server Error
+        return ['http_code' => 500, 'status' => 'error', 'message' => 'Erro interno ao criar filme.'];
     }
     
+    // Mapeado para PUT/PATCH /filme
     public function atualizar(array $data): array {
         $id = (int) ($data['id'] ?? 0);
         $titulo = trim($data['titulo'] ?? '');
         $ano_lancamento = (int) ($data['ano_lancamento'] ?? 0);
-        $tempo_duracao = trim($data['tempo_duracao'] ?? ''); // <-- Novo campo
+        $tempo_duracao = trim($data['tempo_duracao'] ?? '');
 
-        // Atualiza a validação
         if ($id <= 0 || empty($titulo) || $ano_lancamento <= 0 || empty($tempo_duracao)) { 
-            return ['success' => false, 'message' => 'ID, Título, Ano de Lançamento e Tempo de Duração são necessários para atualização.'];
+            // Validação de campos: 400 Bad Request
+            return ['http_code' => 400, 'status' => 'error', 'message' => 'ID, Título, Ano de Lançamento e Tempo de Duração são necessários para atualização.'];
         }
 
         if (!$this->dao->findById($id)) {
-            return ['success' => false, 'message' => 'Filme a ser atualizado não encontrado.'];
+            // Recurso não encontrado: 404 Not Found
+            return ['http_code' => 404, 'status' => 'error', 'message' => 'Filme a ser atualizado não encontrado.'];
         }
 
-        // Passa o novo campo para o DAO
         if ($this->dao->update($id, $titulo, $ano_lancamento, $tempo_duracao)) { 
-            return ['success' => true, 'message' => 'Filme atualizado com sucesso.'];
+            // Sucesso na atualização: 200 OK
+            return ['http_code' => 200, 'status' => 'success', 'message' => 'Filme atualizado com sucesso.'];
         }
-        return ['success' => false, 'message' => 'Falha ao atualizar filme.'];
+        // Falha interna: 500 Internal Server Error
+        return ['http_code' => 500, 'status' => 'error', 'message' => 'Falha ao atualizar filme.'];
     }
     
+    // Mapeado para DELETE /filme
     public function excluir(array $data): array {
         $id = (int) ($data['id'] ?? 0);
         
         if ($id <= 0) {
-            return ['success' => false, 'message' => 'ID é obrigatório para exclusão.'];
+            // ID ausente: 400 Bad Request
+            return ['http_code' => 400, 'status' => 'error', 'message' => 'ID é obrigatório para exclusão.'];
         }
 
         if (!$this->dao->findById($id)) {
-            return ['success' => false, 'message' => 'Filme não encontrado.'];
+            // Recurso não encontrado: 404 Not Found
+            return ['http_code' => 404, 'status' => 'error', 'message' => 'Filme não encontrado.'];
         }
 
         try {
             if ($this->dao->delete($id)) {
-                return ['success' => true, 'message' => 'Filme excluído com sucesso.'];
+                // Sucesso na exclusão: 200 OK
+                return ['http_code' => 200, 'status' => 'success', 'message' => 'Filme excluído com sucesso.'];
             }
         } catch (\PDOException $e) {
             if (strpos($e->getMessage(), 'Foreign key constraint fails') !== false) {
-                 return ['success' => false, 'message' => 'Não é possível excluir o filme, pois ele possui avaliações associadas.'];
+                // Conflito de Integridade (Chave Estrangeira): 409 Conflict
+                return ['http_code' => 409, 'status' => 'error', 'message' => 'Não é possível excluir o filme, pois ele possui avaliações associadas.'];
             }
         }
-        return ['success' => false, 'message' => 'Falha ao excluir filme.'];
+        // Falha interna (catch geral): 500 Internal Server Error
+        return ['http_code' => 500, 'status' => 'error', 'message' => 'Falha ao excluir filme.'];
     }
 }

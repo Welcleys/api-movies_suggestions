@@ -14,102 +14,112 @@ class AvaliacaoService {
         $this->categoriaDao = MysqlFactory::createCategoriaDAO();
     }
     
+    // Função auxiliar para validação de dados comuns
     private function validateData(array $data): array {
         $filme_id = (int) ($data['filme_id'] ?? 0);
         $categoria_id = (int) ($data['categoria_id'] ?? 0);
         $nota = (int) ($data['nota'] ?? 0);
         
+        // Validação de campos obrigatórios
         if ($filme_id <= 0 || $categoria_id <= 0 || $nota <= 0) {
-            return ['success' => false, 'message' => 'filme_id, categoria_id e nota são obrigatórios.'];
+            // Retorno com o status de erro e o código HTTP 400
+            return ['status' => 'error', 'http_code' => 400, 'message' => 'filme_id, categoria_id e nota são obrigatórios.'];
         }
 
-        if ($nota < 1 || $nota > 10) { // Exemplo de regra: nota entre 1 e 10
-            return ['success' => false, 'message' => 'A nota deve ser um valor entre 1 e 10.'];
+        // Validação de intervalo da nota
+        if ($nota < 1 || $nota > 10) { 
+            return ['status' => 'error', 'http_code' => 400, 'message' => 'A nota deve ser um valor entre 1 e 10.'];
         }
         
+        // Validação de chaves estrangeiras (existência)
         if (!$this->filmeDao->findById($filme_id)) {
-            return ['success' => false, 'message' => 'Filme com ID ' . $filme_id . ' não encontrado.'];
+            return ['status' => 'error', 'http_code' => 404, 'message' => 'Filme com ID ' . $filme_id . ' não encontrado.'];
         }
 
         if (!$this->categoriaDao->findById($categoria_id)) {
-            return ['success' => false, 'message' => 'Categoria com ID ' . $categoria_id . ' não encontrada.'];
+            return ['status' => 'error', 'http_code' => 404, 'message' => 'Categoria com ID ' . $categoria_id . ' não encontrada.'];
         }
 
-        return ['success' => true, 'data' => ['filme_id' => $filme_id, 'categoria_id' => $categoria_id, 'nota' => $nota]];
+        return ['status' => 'success', 'data' => ['filme_id' => $filme_id, 'categoria_id' => $categoria_id, 'nota' => $nota]];
     }
 
+    // Mapeado para GET /avaliacao
+    // Retorna os dados, o código HTTP 200 será o padrão no ponto de saída
     public function getAll(): array {
         return $this->dao->findAll();
     }
 
+    // Mapeado para POST /avaliacao
     public function create(array $data): array {
         $validation = $this->validateData($data);
-        if (!$validation['success']) {
-            return $validation;
+        if ($validation['status'] === 'error') {
+            return $validation; // Retorna o erro com http_code 400 ou 404
         }
         
         $d = $validation['data'];
         if ($this->dao->create($d['filme_id'], $d['categoria_id'], $d['nota'])) {
-            return ['success' => true, 'message' => 'Avaliação criada com sucesso.'];
+            // Sucesso na criação: 201 Created
+            return ['http_code' => 201, 'status' => 'success', 'message' => 'Avaliação criada com sucesso.'];
         }
 
-        return ['success' => false, 'message' => 'Erro interno ao criar avaliação.'];
+        // Falha interna: 500 Internal Server Error
+        return ['http_code' => 500, 'status' => 'error', 'message' => 'Erro interno ao criar avaliação.'];
     }
     
+    // Mapeado para PUT/PATCH /avaliacao
     public function atualizar(array $data): array {
-    $id = (int) ($data['id'] ?? 0);
+        $id = (int) ($data['id'] ?? 0);
+        
         if ($id <= 0) {
-            return ['success' => false, 'message' => 'ID é obrigatório para atualização.'];
+            // ID ausente: 400 Bad Request
+            return ['http_code' => 400, 'status' => 'error', 'message' => 'ID é obrigatório para atualização.'];
         }
 
-        // 1. Busca a avaliação existente (dados atuais)
         $avaliacaoExistente = $this->dao->findById($id);
         if (!$avaliacaoExistente) {
-            return ['success' => false, 'message' => 'Avaliação a ser atualizada não encontrada.'];
+            // Recurso não encontrado: 404 Not Found
+            return ['http_code' => 404, 'status' => 'error', 'message' => 'Avaliação a ser atualizada não encontrada.'];
         }
 
-        // 2. Define os novos valores, mantendo os antigos se não forem enviados
+        // Lógica de mesclagem (PATCH-like)
         $filme_id = (int) ($data['filme_id'] ?? $avaliacaoExistente['filme_id']);
         $categoria_id = (int) ($data['categoria_id'] ?? $avaliacaoExistente['categoria_id']);
         $nota = (int) ($data['nota'] ?? $avaliacaoExistente['nota']);
 
-        // 3. Validação Básica dos campos que podem ter sido alterados
-        if ($filme_id <= 0 || $categoria_id <= 0 || $nota <= 0) {
-            return ['success' => false, 'message' => 'filme_id, categoria_id e nota são obrigatórios e devem ser válidos.'];
+        // Validação (usando a lógica simplificada da função interna, mas tratando os retornos)
+        $validationData = ['filme_id' => $filme_id, 'categoria_id' => $categoria_id, 'nota' => $nota];
+        $validation = $this->validateData($validationData);
+        if ($validation['status'] === 'error') {
+            return $validation; // Retorna o erro com http_code 400 ou 404
         }
-        if ($nota < 1 || $nota > 10) {
-            return ['success' => false, 'message' => 'A nota deve ser um valor entre 1 e 10.'];
-        }
-
-        // 4. Validação de Chaves Estrangeiras (Obrigatório se alterado)
-        if (!$this->filmeDao->findById($filme_id)) {
-            return ['success' => false, 'message' => 'Filme com ID ' . $filme_id . ' não encontrado.'];
-        }
-        if (!$this->categoriaDao->findById($categoria_id)) {
-            return ['success' => false, 'message' => 'Categoria com ID ' . $categoria_id . ' não encontrada.'];
-        }
-
-        // 5. Atualiza o DAO com todos os campos (combinando novos e antigos)
+        
         if ($this->dao->update($id, $filme_id, $categoria_id, $nota)) {
-            return ['success' => true, 'message' => 'Avaliação atualizada com sucesso.'];
+            // Sucesso na atualização: 200 OK
+            return ['http_code' => 200, 'status' => 'success', 'message' => 'Avaliação atualizada com sucesso.'];
         }
-        return ['success' => false, 'message' => 'Falha ao atualizar avaliação.'];
+        // Falha interna: 500 Internal Server Error
+        return ['http_code' => 500, 'status' => 'error', 'message' => 'Falha ao atualizar avaliação.'];
     }
 
+    // Mapeado para DELETE /avaliacao
     public function excluir(array $data): array {
         $id = (int) ($data['id'] ?? 0);
         
         if ($id <= 0) {
-            return ['success' => false, 'message' => 'ID é obrigatório para exclusão.'];
+            // ID ausente: 400 Bad Request
+            return ['http_code' => 400, 'status' => 'error', 'message' => 'ID é obrigatório para exclusão.'];
         }
 
         if (!$this->dao->findById($id)) {
-            return ['success' => false, 'message' => 'Avaliação não encontrada.'];
+            // Recurso não encontrado: 404 Not Found
+            return ['http_code' => 404, 'status' => 'error', 'message' => 'Avaliação não encontrada.'];
         }
         
         if ($this->dao->delete($id)) {
-            return ['success' => true, 'message' => 'Avaliação excluída com sucesso.'];
+            // Sucesso na exclusão: 200 OK (Muitas APIs usam 204 No Content, mas 200 é mais simples aqui)
+            return ['http_code' => 200, 'status' => 'success', 'message' => 'Avaliação excluída com sucesso.'];
         }
-        return ['success' => false, 'message' => 'Falha ao excluir avaliação.'];
+        // Falha interna: 500 Internal Server Error
+        return ['http_code' => 500, 'status' => 'error', 'message' => 'Falha ao excluir avaliação.'];
     }
 }

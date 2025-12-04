@@ -17,13 +17,13 @@ class FilmeDAO {
     }
 
     public function findAll(): array {
-        $query = "SELECT id, titulo, ano_lancamento, tempo_duracao FROM " . $this->table_name . " ORDER BY titulo ASC"; // <-- Adicione tempo_duracao
+        $query = "SELECT id, titulo, ano_lancamento, tempo_duracao FROM " . $this->table_name . " ORDER BY titulo ASC";
         $stmt = $this->conn->prepared($query);
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     public function findById(int $id): ?array {
-        $query = "SELECT id, titulo, ano_lancamento, tempo_duracao FROM " . $this->table_name . " WHERE id = ?"; // <-- Adicione tempo_duracao
+        $query = "SELECT id, titulo, ano_lancamento, tempo_duracao FROM " . $this->table_name . " WHERE id = ?";
         $stmt = $this->conn->prepared($query, [$id]);
         return $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
     }
