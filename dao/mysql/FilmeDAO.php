@@ -17,7 +17,7 @@ class FilmeDAO {
     }
 
     public function findAll(): array {
-        $query = "SELECT id, titulo, ano_lancamento, tempo_duracao FROM " . $this->table_name . " ORDER BY titulo ASC";
+        $query = "SELECT id, titulo, ano_lancamento, tempo_duracao FROM " . $this->table_name . " ORDER BY id ASC";
         $stmt = $this->conn->prepared($query);
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }

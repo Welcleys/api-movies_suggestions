@@ -21,7 +21,7 @@ class AvaliacaoDAO {
                   FROM " . $this->table_name . " a
                   JOIN filmes f ON a.filme_id = f.id
                   JOIN categorias c ON a.categoria_id = c.id
-                  ORDER BY a.id DESC";
+                  ORDER BY a.id ASC";
         $stmt = $this->conn->prepared($query);
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }

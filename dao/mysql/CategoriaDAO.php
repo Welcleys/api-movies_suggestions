@@ -19,7 +19,7 @@ class CategoriaDAO {
     }
 
     public function findAll(): array {
-        $query = "SELECT id, nome FROM " . $this->table_name . " ORDER BY nome ASC";
+        $query = "SELECT id, nome FROM " . $this->table_name . " ORDER BY id ASC";
         $stmt = $this->conn->prepared($query); 
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }

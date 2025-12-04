@@ -33,16 +33,9 @@ class Rotas{
         if (isset($this->endpoints[$rota])) {
             $endpoint = $this->endpoints[$rota];
             
-            $dados = $endpoint->executar($id); // Dados são o array retornado pelo Service
+            $dados = $endpoint->executar($id);
             
-            // --- CÓDIGO CORRIGIDO ---
-            // ANTES: $retorno = new Retorno();
-            // ANTES: $retorno ->dados = $dados;
-            // ANTES: return $retorno;
-
-            // NOVO: Retorna o array de dados do Service DIRETAMENTE.
             return $dados;
-            // --------------------------
         }
         return null;
     }
